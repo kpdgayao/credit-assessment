@@ -1,0 +1,7 @@
+streamlit
+supabase
+python-dotenv
+uuid
+requests
+PyPDF2
+anthropic
