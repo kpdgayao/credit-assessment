@@ -275,8 +275,11 @@ def extract_application_id(credit_report):
     # Example implementation:
     start_index = credit_report.find("Application ID:") + len("Application ID:")
     end_index = credit_report.find("</p>", start_index)
-    application_id = credit_report[start_index:end_index].strip()
-    return application_id
+    if start_index != -1 and end_index != -1:
+        application_id = credit_report[start_index:end_index].strip()
+        return application_id
+    else:
+        return "application_id_not_found"
 
 def main():
     st.set_page_config(page_title="Credit Assessor")
@@ -293,67 +296,75 @@ def main():
             with st.spinner("Analyzing data..."):
                 processed_data = process_extracted_data(extracted_data)
                 
-        if processed_data:
-            with st.spinner("Generating report..."):
-                credit_report = generate_credit_report(processed_data)
-                
-                # Display Report in Expandable Section
-                with st.expander("View Credit Assessment Report"):
-                    # Apply CSS styles to the credit-report class
-                    st.markdown(
-                        """
-                        <style>
-                        .credit-report {
-                            font-family: Arial, sans-serif;
-                            font-size: 14px;
-                            line-height: 1.5;
-                        }
-                        .credit-report h1, .credit-report h2, .credit-report h3, .credit-report h4, .credit-report h5, .credit-report h6 {
-                            margin-top: 20px;
-                            margin-bottom: 10px;
-                        }
-                        .credit-report p {
-                            margin-bottom: 10px;
-                        }
-                        .credit-report ul, .credit-report ol {
-                            margin-left: 20px;
-                            margin-bottom: 10px;
-                        }
-                        .credit-report li {
-                            margin-bottom: 5px;
-                        }
-                        </style>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                    st.markdown(credit_report, unsafe_allow_html=True)
-                        
-            if credit_report:
-                with st.spinner("Storing report..."):
-                    store_credit_report(credit_report)
-                    st.success("Credit report processed successfully.")
+            if processed_data:
+                with st.spinner("Generating report..."):
+                    credit_report = generate_credit_report(processed_data)
                     
-                with st.spinner("Generating PDF..."):
-                    try:
-                        pdf_bytes = html_to_pdf(credit_report)
-                        
-                        # Extract the application ID from the generated report
-                        application_id = extract_application_id(credit_report)
-                        
-                        st.download_button(
-                            label="Download PDF",
-                            data=pdf_bytes,
-                            file_name=f"{application_id}_credit_assessment_report.pdf",
-                            mime="application/pdf",
+                    # Display Report in Expandable Section
+                    with st.expander("View Credit Assessment Report"):
+                        # Apply CSS styles to the credit-report class
+                        st.markdown(
+                            """
+                            <style>
+                            .credit-report {
+                                font-family: Arial, sans-serif;
+                                font-size: 14px;
+                                line-height: 1.5;
+                            }
+                            .credit-report h1, .credit-report h2, .credit-report h3, .credit-report h4, .credit-report h5, .credit-report h6 {
+                                margin-top: 20px;
+                                margin-bottom: 10px;
+                            }
+                            .credit-report p {
+                                margin-bottom: 10px;
+                            }
+                            .credit-report ul, .credit-report ol {
+                                margin-left: 20px;
+                                margin-bottom: 10px;
+                            }
+                            .credit-report li {
+                                margin-bottom: 5px;
+                            }
+                            </style>
+                            """,
+                            unsafe_allow_html=True
                         )
-                    except Exception as e:
-                        st.error(f"Error generating PDF: {e}")
+                        st.markdown(credit_report, unsafe_allow_html=True)
+                        
+                if credit_report:
+                    with st.spinner("Storing report..."):
+                        store_credit_report(credit_report)
+                        st.success("Credit report processed successfully.")
+                        
+                    with st.spinner("Generating PDF..."):
+                        try:
+                            pdf_bytes = html_to_pdf(credit_report)
+                            
+                            # Extract the application ID from the generated report
+                            application_id = extract_application_id(credit_report)
+                            
+                            if application_id == "application_id_not_found":
+                                file_name = "credit_assessment_report.pdf"
+                            else:
+                                file_name = f"{application_id}_credit_assessment_report.pdf"
+                            
+                            st.download_button(
+                                label="Download PDF",
+                                data=pdf_bytes,
+                                file_name=file_name,
+                                mime="application/pdf",
+                            )
+                        except Exception as e:
+                            st.error(f"Error generating PDF: {e}")
+                else:
+                    st.error("Failed to generate credit report.")
             else:
-                st.error("Failed to generate credit report.")
+                st.error("Failed to process data.")
         else:
-            st.error("Failed to process data.")
+            st.error("Failed to extract data.")
     else:
-        st.error("Failed to extract data.")
+        # Display a message when no file is uploaded
+        st.info("Please upload a loan application form in PDF format.")
 
 if __name__ == "__main__":
     main()
