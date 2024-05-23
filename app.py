@@ -7,9 +7,8 @@ import io
 import requests
 import PyPDF2
 import json
-import anthropic  # Add this line to import the anthropic module
-import asyncio
-from playwright.async_api import async_playwright  # Import Playwright
+import anthropic
+from weasyprint import HTML  # Import WeasyPrint 
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,6 +22,7 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_api_key = os.getenv("SUPABASE_API_KEY")
 supabase_client = create_client(supabase_url, supabase_api_key)
 
+@st.cache_data(show_spinner=False)  # Cache extraction results
 def extract_data_from_pdf(file):
     try:
         # Set a file size limit (e.g., 5MB)
@@ -47,6 +47,7 @@ def extract_data_from_pdf(file):
         st.error(f"Error occurred during text extraction: {str(e)}")
         return None
 
+@st.cache_data(show_spinner=False)  # Cache processed data
 def process_extracted_data(extracted_data):
     try:
         # Use Anthropic API to process the extracted data
@@ -58,7 +59,7 @@ def process_extracted_data(extracted_data):
         ]
 
         response = client.messages.create(
-            model="claude-3-opus-20240229",
+            model="claude-3-sonnet-20240229",
             messages=messages,
             max_tokens=1024
         )
@@ -99,6 +100,7 @@ def store_processed_data(processed_data):
     except Exception as e:
         st.error(f"Error occurred while storing processed data: {str(e)}")
 
+@st.cache_data(show_spinner=False)  # Cache generated credit report
 def generate_credit_report(processed_data):
     try:
         # Use Anthropic API to generate credit assessment report
@@ -210,65 +212,49 @@ def store_credit_report(credit_report):
     except Exception as e:
         st.error(f"Error occurred while storing credit report: {str(e)}")
 
-async def html_to_pdf(html_content):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page()
-        await page.set_content(html_content)
-        pdf_bytes = await page.pdf({"format": "A4"})
-        await browser.close()
-        return pdf_bytes
+def html_to_pdf(html_content):  # New function using WeasyPrint
+    html = HTML(string=html_content)
+    return html.write_pdf()
 
 def main():
-    st.title("Credit Assessment App")
+    st.title("OCCC Credit Assessment Report")  # Rename the title
 
-    # Upload loan application form
-    uploaded_file = st.file_uploader("Choose a loan application form (PDF)", type=["pdf"])
-
-    if uploaded_file is not None:
-        # Extract data from the PDF file
-        with st.spinner("Extracting data from the PDF file..."):
+    with st.expander("Upload Loan Application Form"):
+        uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
+        
+    if uploaded_file:
+        with st.spinner("Extracting data..."):
             extracted_data = extract_data_from_pdf(uploaded_file)
 
-        if extracted_data is not None:
-            # Process the extracted data using Anthropic API
-            with st.spinner("Processing the extracted data..."):
+        if extracted_data:
+            with st.spinner("Analyzing data..."):
                 processed_data = process_extracted_data(extracted_data)
 
-            if processed_data is not None:
-                # Store the processed data in Supabase
-                with st.spinner("Storing the processed data..."):
-                    store_processed_data(processed_data)
-
-                # Generate credit assessment report using Anthropic API
-                with st.spinner("Generating the credit assessment report..."):
+            if processed_data:
+                with st.spinner("Generating report..."):
                     credit_report = generate_credit_report(processed_data)
+                    
+                    # Display Report in Expandable Section
+                    with st.expander("View Credit Assessment Report"):
+                        st.markdown(credit_report)
 
-                if credit_report is not None:
-                    # Store the credit report in Supabase
-                    with st.spinner("Storing the credit report..."):
+                if credit_report:
+                    with st.spinner("Storing report..."):
                         store_credit_report(credit_report)
 
-                    # Display the credit assessment report
-                    st.header("Credit Assessment Report")
-                    st.markdown(credit_report)
-
-                    # Add a "Download PDF" button
-                    if st.button("Download PDF"):
+                    if st.download_button("Download PDF"):  # Download button outside the spinner
                         with st.spinner("Generating PDF..."):
-                            pdf_bytes = asyncio.run(html_to_pdf(credit_report))
-                            st.download_button(
-                                label="Download PDF",
-                                data=pdf_bytes,
-                                file_name="credit_assessment_report.pdf",
-                                mime="application/pdf"
-                            )
+                            pdf_bytes = html_to_pdf(credit_report)
+                            st.download_button(label="Download PDF",
+                                               data=pdf_bytes,
+                                               file_name="occc_credit_assessment_report.pdf",
+                                               mime="application/pdf")
                 else:
-                    st.error("Failed to generate the credit assessment report.")
+                    st.error("Failed to generate credit report.")
             else:
-                st.error("Failed to process the extracted data.")
+                st.error("Failed to process data.")
         else:
-            st.error("Failed to extract data from the PDF file.")
+            st.error("Failed to extract data.")
 
 if __name__ == "__main__":
     main()
