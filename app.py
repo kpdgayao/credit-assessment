@@ -246,18 +246,17 @@ def main():
                     with st.spinner("Storing report..."):
                         store_credit_report(credit_report)
 
-                    if st.download_button("Download PDF"):  # Download button outside the spinner
-                        with st.spinner("Generating PDF..."):
-                            try:
-                                pdf_bytes = html_to_pdf(credit_report)
-                                st.download_button(
-                                    label="Download PDF",
-                                    data=pdf_bytes,
-                                    file_name="occc_credit_assessment_report.pdf",
-                                    mime="application/pdf",
-                                )
-                            except Exception as e:
-                                st.error(f"Error generating PDF: {e}")
+                    with st.spinner("Generating PDF..."):
+                        try:
+                            pdf_bytes = html_to_pdf(credit_report)
+                            st.download_button(
+                                label="Download PDF",
+                                data=pdf_bytes,
+                                file_name="occc_credit_assessment_report.pdf",
+                                mime="application/pdf",
+                            )
+                        except Exception as e:
+                            st.error(f"Error generating PDF: {e}")
                                 
                 else:
                     st.error("Failed to generate credit report.")
