@@ -213,8 +213,12 @@ def store_credit_report(credit_report):
         st.error(f"Error occurred while storing credit report: {str(e)}")
 
 def html_to_pdf(html_content):  # New function using WeasyPrint
-    html = HTML(string=html_content)
-    return html.write_pdf()
+    try:
+        html = HTML(string=html_content)
+        return html.write_pdf()
+    except Exception as e:
+        st.error(f"Error generating PDF: {e}")
+        return None
 
 def main():
     st.title("OCCC Credit Assessment Report")  # Rename the title
