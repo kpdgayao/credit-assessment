@@ -251,11 +251,11 @@ def store_credit_report(credit_report):
         }
         response = supabase_client.table("credit_reports").insert(credit_report_record).execute()
         if response:
-            st.success("Credit report stored successfully.")
+            st.success("Credit report processed successfully.")
         else:
-            st.error("Failed to store credit report.")
+            st.error("Failed to process credit report.")
     except Exception as e:
-        st.error(f"Error occurred while storing credit report: {str(e)}")
+        st.error(f"Error occurred while processing credit report: {str(e)}")
 
 def html_to_pdf(report):
     try:
@@ -265,7 +265,17 @@ def html_to_pdf(report):
         st.error(f"Error generating PDF: {e}")
         return None
 
+def extract_reference_number(credit_report):
+    # Extract the reference number from the credit report using regular expressions or string manipulation
+    # Modify this function based on the structure of your generated report
+    # Example implementation:
+    start_index = credit_report.find("Application ID:") + len("Application ID:")
+    end_index = credit_report.find("</p>", start_index)
+    reference_number = credit_report[start_index:end_index].strip()
+    return reference_number
+
 def main():
+    st.set_page_config(page_title="Credit Assessor")
     st.title("OCCC Credit Assessment Report")  # Rename the title
     
     with st.expander("Upload Loan Application Form"):
@@ -285,19 +295,24 @@ def main():
                     
                     # Display Report in Expandable Section
                     with st.expander("View Credit Assessment Report"):
-                        st.markdown(credit_report)
+                        st.markdown(credit_report, unsafe_allow_html=True)
                         
                 if credit_report:
                     with st.spinner("Storing report..."):
                         store_credit_report(credit_report)
+                        st.success("Credit report stored successfully.")
                         
                     with st.spinner("Generating PDF..."):
                         try:
                             pdf_bytes = html_to_pdf(credit_report)
+                            
+                            # Extract the reference number from the generated report
+                            reference_number = extract_reference_number(credit_report)
+                            
                             st.download_button(
                                 label="Download PDF",
                                 data=pdf_bytes,
-                                file_name="occc_credit_assessment_report.pdf",
+                                file_name=f"{reference_number}_credit_assessment_report.pdf",
                                 mime="application/pdf",
                             )
                         except Exception as e:
