@@ -194,21 +194,7 @@ Please include the following notices at the end of your report:
 
         report = response.content[0].text
 
-        # Wrap the report in HTML tags and add classes for formatting
-        formatted_report = f"""
-        <html>
-        <head>
-            <style>
-                /* Add any custom styles here */
-            </style>
-        </head>
-        <body>
-            {report}
-        </body>
-        </html>
-        """
-
-        return formatted_report
+        return report
     except anthropic.BadRequestError as e:
         st.error(f"Bad Request Error occurred while generating the credit report. Error details: {str(e)}")
         return None
@@ -231,10 +217,25 @@ def store_credit_report(credit_report):
     except Exception as e:
         st.error(f"Error occurred while storing credit report: {str(e)}")
 
-def html_to_pdf(html_content):
+def html_to_pdf(report):
     try:
         css_file = "styles.css"  # Path to your CSS file
-        html = HTML(string=html_content)
+
+        # Wrap the report in HTML tags and add classes for formatting
+        formatted_report = f"""
+        <html>
+        <head>
+            <style>
+                /* Add any custom styles here */
+            </style>
+        </head>
+        <body>
+            {report}
+        </body>
+        </html>
+        """
+
+        html = HTML(string=formatted_report)
         css = CSS(filename=css_file)
         return html.write_pdf(stylesheets=[css])
     except Exception as e:
