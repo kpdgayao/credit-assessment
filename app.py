@@ -109,71 +109,111 @@ def generate_credit_report(processed_data):
         client = anthropic.Client(api_key=anthropic_api_key)
 
         system_prompt = """
-You are an AI-powered credit assessment expert for individual borrowers in the Philippines. Your task is to thoroughly analyze the provided loan application details and generate a comprehensive credit report with a rigorous initial assessment of the applicant's creditworthiness based on the 5 Cs of credit: Capacity, Capital, Character, Collateral, and Conditions.
+        You are an AI-powered credit assessment expert for individual borrowers in the Philippines. Your task is to thoroughly analyze the provided loan application details and generate a comprehensive credit report with a rigorous initial assessment of the applicant's creditworthiness based on the 5 Cs of credit: Capacity, Capital, Character, Collateral, and Conditions.
 
-For each of the 5 Cs, provide an in-depth analysis and a conservative score on a scale of 1 to 5, with 5 being the strongest. Be strict in your evaluation and identify any missing information, inconsistencies, or red flags that require further investigation or clarification. Do not make any assumptions in favor of the applicant.
+        For each of the 5 Cs, provide an in-depth analysis and a conservative score on a scale of 1 to 5, with 5 being the strongest. Be strict in your evaluation and identify any missing information, inconsistencies, or red flags that require further investigation or clarification. Do not make any assumptions in favor of the applicant.
 
-Based on your analysis, provide an overall credit score (1-5) and a recommendation on whether to approve, conditionally approve, or deny the loan application. If you conditionally approve or deny the application, provide specific suggestions on what additional information, documents, or changes to the loan terms could potentially lead you to reconsider your decision.
+        Based on your analysis, provide an overall credit score (1-5) and a recommendation on whether to approve, conditionally approve, or deny the loan application. If you conditionally approve or deny the application, provide specific suggestions on what additional information, documents, or changes to the loan terms could potentially lead you to reconsider your decision.
 
-In your report, cite specific information from the loan application to support your analysis. Highlight any additional documents, such as detailed credit reports, verified financial statements, or professional collateral appraisals, that would be required to make a fully informed assessment.
+        In your report, cite specific information from the loan application to support your analysis. Highlight any additional documents, such as detailed credit reports, verified financial statements, or professional collateral appraisals, that would be required to make a fully informed assessment.
 
-Format your report in Markdown as follows:
+        Format your report in HTML with the following structure:
 
-# Credit Assessment Report
-**Application ID:** [ID]
-**Processing Date:** [YYYY-MM-DD HH:MM:SS]
-**Prepared For:** [Initials]
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.5;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                    margin-top: 20px;
+                    margin-bottom: 10px;
+                }
+                h1 {
+                    font-size: 24px;
+                }
+                h2 {
+                    font-size: 20px;
+                }
+                h3 {
+                    font-size: 16px;
+                }
+                p {
+                    margin-bottom: 10px;
+                }
+                strong {
+                    font-weight: bold;
+                }
+                em {
+                    font-style: italic;
+                }
+                ul, ol {
+                    margin-left: 20px;
+                    margin-bottom: 10px;
+                }
+                li {
+                    margin-bottom: 5px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Credit Assessment Report</h1>
+            <p><strong>Application ID:</strong> [ID]</p>
+            <p><strong>Processing Date:</strong> [YYYY-MM-DD HH:MM:SS]</p>
+            <p><strong>Prepared For:</strong> [Initials]</p>
 
-## Loan Details
-**Loan Amount:** [Amount]
-**Loan Term:** [Term]
+            <h2>Loan Details</h2>
+            <p><strong>Loan Amount:</strong> [Amount]</p>
+            <p><strong>Loan Term:</strong> [Term]</p>
 
-## 5 C's Analysis
-### Capacity - Score: [1-5]
-[Analysis]
+            <h2>5 C's Analysis</h2>
+            <h3>Capacity - Score: [1-5]</h3>
+            <p>[Analysis]</p>
 
-### Capital - Score: [1-5]
-[Analysis]
+            <h3>Capital - Score: [1-5]</h3>
+            <p>[Analysis]</p>
 
-### Character - Score: [1-5]
-[Analysis]
+            <h3>Character - Score: [1-5]</h3>
+            <p>[Analysis]</p>
 
-### Collateral - Score: [1-5]
-[Analysis]
+            <h3>Collateral - Score: [1-5]</h3>
+            <p>[Analysis]</p>
 
-### Conditions - Score: [1-5]
-[Analysis]
+            <h3>Conditions - Score: [1-5]</h3>
+            <p>[Analysis]</p>
 
-## Overall Credit Score
-**[Score] out of 5**
+            <h2>Overall Credit Score</h2>
+            <p><strong>[Score] out of 5</strong></p>
 
-## Recommendation
-**[Approve/Conditionally Approve/Conditionally Deny/Deny]**
-[Explanation]
+            <h2>Recommendation</h2>
+            <p><strong>[Approve/Conditionally Approve/Conditionally Deny/Deny]</strong></p>
+            <p>[Explanation]</p>
 
-## Suggestions for Reconsideration
-[Suggestions, if applicable]
+            <h2>Suggestions for Reconsideration</h2>
+            <p>[Suggestions, if applicable]</p>
 
-## Risk Explanation
-*[High/Medium/Low risk, with explanation]*
+            <h2>Risk Explanation</h2>
+            <p><em>[High/Medium/Low risk, with explanation]</em></p>
 
-Do not include any personally identifiable information in the report. Instead, refer to the applicant using only their initials, and reference the application ID, processing date and time, and the initials of the person who requested the report.
+            <hr>
+            <p><strong>Disclaimer:</strong></p>
+            <p><em>This AI-generated credit assessment is provided as a tool to assist the credit committee in making an informed decision. It should not be relied upon as the sole basis for loan approval or denial. The credit committee should independently verify the information provided, request additional documentation as needed, and carefully consider all relevant factors before making a final determination on the loan application.</em></p>
 
-Your report should be clear, well-structured, and objective, with a focus on identifying and mitigating potential risks. Avoid making any biased or discriminatory assessments. The goal is to provide a rigorous, data-driven initial assessment to guide further underwriting while carefully considering all factors that could impact the borrower's likelihood of repaying the loan as agreed.
+            <p><strong>Confidentiality Notice:</strong></p>
+            <p><em>This credit assessment report is confidential and intended solely for the use of the credit committee and authorized underwriters. It should not be shared, reproduced, or distributed to any third parties without express written permission. This report is part of an experimental AI-based credit evaluation system and should be used judiciously in conjunction with established underwriting practices.</em></p>
+        </body>
+        </html>
 
-Remember, as a prudent credit assessor, your primary responsibility is to protect the lender's interests and maintain a high-quality loan portfolio. Do not hesitate to request additional information or recommend denial if the application does not meet strict underwriting standards.
+        Do not include any personally identifiable information in the report. Instead, refer to the applicant using only their initials, and reference the application ID, processing date and time, and the initials of the person who requested the report.
 
-However, keep in mind that your assessment is a suggestion to the credit committee, not a final decision. The credit committee will review your report along with other relevant information to make the ultimate determination on loan approval.
+        Your report should be clear, well-structured, and objective, with a focus on identifying and mitigating potential risks. Avoid making any biased or discriminatory assessments. The goal is to provide a rigorous, data-driven initial assessment to guide further underwriting while carefully considering all factors that could impact the borrower's likelihood of repaying the loan as agreed.
 
-Please include the following notices at the end of your report:
+        Remember, as a prudent credit assessor, your primary responsibility is to protect the lender's interests and maintain a high-quality loan portfolio. Do not hesitate to request additional information or recommend denial if the application does not meet strict underwriting standards.
 
----
-**Disclaimer:**
-*This AI-generated credit assessment is provided as a tool to assist the credit committee in making an informed decision. It should not be relied upon as the sole basis for loan approval or denial. The credit committee should independently verify the information provided, request additional documentation as needed, and carefully consider all relevant factors before making a final determination on the loan application.*
-
-**Confidentiality Notice:**
-*This credit assessment report is confidential and intended solely for the use of the credit committee and authorized underwriters. It should not be shared, reproduced, or distributed to any third parties without express written permission. This report is part of an experimental AI-based credit evaluation system and should be used judiciously in conjunction with established underwriting practices.*
-"""
+        However, keep in mind that your assessment is a suggestion to the credit committee, not a final decision. The credit committee will review your report along with other relevant information to make the ultimate determination on loan approval.
+        """
 
         messages = [
             {"role": "user", "content": f"Loan Application Details:\n{json.dumps(processed_data)}\n\nPlease generate the credit assessment report."}
@@ -219,25 +259,8 @@ def store_credit_report(credit_report):
 
 def html_to_pdf(report):
     try:
-        css_file = "styles.css"  # Path to your CSS file
-
-        # Wrap the report in HTML tags and add classes for formatting
-        formatted_report = f"""
-        <html>
-        <head>
-            <style>
-                /* Add any custom styles here */
-            </style>
-        </head>
-        <body>
-            {report}
-        </body>
-        </html>
-        """
-
-        html = HTML(string=formatted_report)
-        css = CSS(filename=css_file)
-        return html.write_pdf(stylesheets=[css])
+        html = HTML(string=report)
+        return html.write_pdf()
     except Exception as e:
         st.error(f"Error generating PDF: {e}")
         return None
