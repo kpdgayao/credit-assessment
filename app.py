@@ -9,6 +9,7 @@ import PyPDF2
 import json
 import anthropic
 from weasyprint import HTML, CSS  # Add this import statement at the top of your script
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -178,12 +179,18 @@ Please include the following notices at the end of your report:
             {"role": "user", "content": f"Loan Application Details:\n{json.dumps(processed_data)}\n\nPlease generate the credit assessment report."}
         ]
 
-        response = client.messages.create(
-            model="claude-3-opus-20240229",
-            max_tokens=2000,
-            system=system_prompt,
-            messages=messages
-        )
+        try:
+            response = client.messages.create(
+                model="claude-3-opus-20240229",
+                max_tokens=2000,
+                system=system_prompt,
+                messages=messages
+            )
+        except anthropic.APIError as e:
+            st.error(f"API Error occurred while generating the credit report. Error details: {str(e)}")
+            # Log the error details for further investigation
+            logging.error(f"Anthropic API Error: {str(e)}")
+            return None
 
         report = response.content[0].text
 
@@ -204,9 +211,6 @@ Please include the following notices at the end of your report:
         return formatted_report
     except anthropic.BadRequestError as e:
         st.error(f"Bad Request Error occurred while generating the credit report. Error details: {str(e)}")
-        return None
-    except anthropic.APIError as e:
-        st.error(f"API Error occurred while generating the credit report. Error details: {str(e)}")
         return None
     except Exception as e:
         st.error(f"An unexpected error occurred while generating the credit report. Error details: {str(e)}")
