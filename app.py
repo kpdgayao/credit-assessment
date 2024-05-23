@@ -8,6 +8,8 @@ import requests
 import PyPDF2
 import json
 import anthropic  # Add this line to import the anthropic module
+import asyncio
+from pyppeteer import launch
 
 # Load environment variables from .env file
 load_dotenv()
@@ -208,6 +210,14 @@ def store_credit_report(credit_report):
     except Exception as e:
         st.error(f"Error occurred while storing credit report: {str(e)}")
 
+async def html_to_pdf(html_content):
+    browser = await launch()
+    page = await browser.newPage()
+    await page.setContent(html_content)
+    pdf_bytes = await page.pdf({"format": "A4"})
+    await browser.close()
+    return pdf_bytes
+
 def main():
     st.title("Credit Assessment App")
 
@@ -241,6 +251,17 @@ def main():
                     # Display the credit assessment report
                     st.header("Credit Assessment Report")
                     st.markdown(credit_report)
+
+                    # Add a "Download PDF" button
+                    if st.button("Download PDF"):
+                        with st.spinner("Generating PDF..."):
+                            pdf_bytes = asyncio.run(html_to_pdf(credit_report))
+                            st.download_button(
+                                label="Download PDF",
+                                data=pdf_bytes,
+                                file_name="credit_assessment_report.pdf",
+                                mime="application/pdf"
+                            )
                 else:
                     st.error("Failed to generate the credit assessment report.")
             else:
