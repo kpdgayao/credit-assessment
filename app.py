@@ -8,7 +8,7 @@ import requests
 import PyPDF2
 import json
 import anthropic
-from weasyprint import HTML  # Import WeasyPrint 
+from weasyprint import HTML, CSS  # Add this import statement at the top of your script
 
 # Load environment variables from .env file
 load_dotenv()
@@ -212,28 +212,30 @@ def store_credit_report(credit_report):
     except Exception as e:
         st.error(f"Error occurred while storing credit report: {str(e)}")
 
-def html_to_pdf(html_content):  # New function using WeasyPrint
+def html_to_pdf(html_content):
     try:
+        css_file = "styles.css"  # Path to your CSS file
         html = HTML(string=html_content)
-        return html.write_pdf()
+        css = CSS(filename=css_file)
+        return html.write_pdf(stylesheets=[css])
     except Exception as e:
         st.error(f"Error generating PDF: {e}")
         return None
 
 def main():
     st.title("OCCC Credit Assessment Report")  # Rename the title
-
+    
     with st.expander("Upload Loan Application Form"):
         uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
         
     if uploaded_file:
         with st.spinner("Extracting data..."):
             extracted_data = extract_data_from_pdf(uploaded_file)
-
+            
         if extracted_data:
             with st.spinner("Analyzing data..."):
                 processed_data = process_extracted_data(extracted_data)
-
+                
             if processed_data:
                 with st.spinner("Generating report..."):
                     credit_report = generate_credit_report(processed_data)
@@ -241,11 +243,11 @@ def main():
                     # Display Report in Expandable Section
                     with st.expander("View Credit Assessment Report"):
                         st.markdown(credit_report)
-
+                        
                 if credit_report:
                     with st.spinner("Storing report..."):
                         store_credit_report(credit_report)
-
+                        
                     with st.spinner("Generating PDF..."):
                         try:
                             pdf_bytes = html_to_pdf(credit_report)
@@ -257,7 +259,6 @@ def main():
                             )
                         except Exception as e:
                             st.error(f"Error generating PDF: {e}")
-                                
                 else:
                     st.error("Failed to generate credit report.")
             else:
