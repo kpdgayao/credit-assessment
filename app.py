@@ -233,8 +233,12 @@ def generate_credit_report(processed_data):
             return None
 
         report = response.content[0].text
-
-        return report
+       
+        # Wrap the report in a <div> tag with a specific class
+        formatted_report = f'<div class="credit-report">{report}</div>'
+        
+        return formatted_report
+    
     except anthropic.BadRequestError as e:
         st.error(f"Bad Request Error occurred while generating the credit report. Error details: {str(e)}")
         return None
@@ -265,14 +269,14 @@ def html_to_pdf(report):
         st.error(f"Error generating PDF: {e}")
         return None
 
-def extract_reference_number(credit_report):
-    # Extract the reference number from the credit report using regular expressions or string manipulation
+def extract_application_id(credit_report):
+    # Extract the application ID from the credit report using regular expressions or string manipulation
     # Modify this function based on the structure of your generated report
     # Example implementation:
     start_index = credit_report.find("Application ID:") + len("Application ID:")
     end_index = credit_report.find("</p>", start_index)
-    reference_number = credit_report[start_index:end_index].strip()
-    return reference_number
+    application_id = credit_report[start_index:end_index].strip()
+    return application_id
 
 def main():
     st.set_page_config(page_title="Credit Assessor")
@@ -289,40 +293,67 @@ def main():
             with st.spinner("Analyzing data..."):
                 processed_data = process_extracted_data(extracted_data)
                 
-            if processed_data:
-                with st.spinner("Generating report..."):
-                    credit_report = generate_credit_report(processed_data)
+        if processed_data:
+            with st.spinner("Generating report..."):
+                credit_report = generate_credit_report(processed_data)
+                
+                # Display Report in Expandable Section
+                with st.expander("View Credit Assessment Report"):
+                    # Apply CSS styles to the credit-report class
+                    st.markdown(
+                        """
+                        <style>
+                        .credit-report {
+                            font-family: Arial, sans-serif;
+                            font-size: 14px;
+                            line-height: 1.5;
+                        }
+                        .credit-report h1, .credit-report h2, .credit-report h3, .credit-report h4, .credit-report h5, .credit-report h6 {
+                            margin-top: 20px;
+                            margin-bottom: 10px;
+                        }
+                        .credit-report p {
+                            margin-bottom: 10px;
+                        }
+                        .credit-report ul, .credit-report ol {
+                            margin-left: 20px;
+                            margin-bottom: 10px;
+                        }
+                        .credit-report li {
+                            margin-bottom: 5px;
+                        }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    st.markdown(credit_report, unsafe_allow_html=True)
+                        
+            if credit_report:
+                with st.spinner("Storing report..."):
+                    store_credit_report(credit_report)
+                    st.success("Credit report processed successfully.")
                     
-                    # Display Report in Expandable Section
-                    with st.expander("View Credit Assessment Report"):
-                        st.markdown(credit_report, unsafe_allow_html=True)
+                with st.spinner("Generating PDF..."):
+                    try:
+                        pdf_bytes = html_to_pdf(credit_report)
                         
-                if credit_report:
-                    with st.spinner("Storing report..."):
-                        store_credit_report(credit_report)
-                        st.success("Credit report stored successfully.")
+                        # Extract the application ID from the generated report
+                        application_id = extract_application_id(credit_report)
                         
-                    with st.spinner("Generating PDF..."):
-                        try:
-                            pdf_bytes = html_to_pdf(credit_report)
-                            
-                            # Extract the reference number from the generated report
-                            reference_number = extract_reference_number(credit_report)
-                            
-                            st.download_button(
-                                label="Download PDF",
-                                data=pdf_bytes,
-                                file_name=f"{reference_number}_credit_assessment_report.pdf",
-                                mime="application/pdf",
-                            )
-                        except Exception as e:
-                            st.error(f"Error generating PDF: {e}")
-                else:
-                    st.error("Failed to generate credit report.")
+                        st.download_button(
+                            label="Download PDF",
+                            data=pdf_bytes,
+                            file_name=f"{application_id}_credit_assessment_report.pdf",
+                            mime="application/pdf",
+                        )
+                    except Exception as e:
+                        st.error(f"Error generating PDF: {e}")
             else:
-                st.error("Failed to process data.")
+                st.error("Failed to generate credit report.")
         else:
-            st.error("Failed to extract data.")
+            st.error("Failed to process data.")
+    else:
+        st.error("Failed to extract data.")
 
 if __name__ == "__main__":
     main()
