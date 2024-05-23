@@ -9,7 +9,7 @@ import PyPDF2
 import json
 import anthropic  # Add this line to import the anthropic module
 import asyncio
-from pyppeteer import launch
+from playwright.async_api import async_playwright  # Import Playwright
 
 # Load environment variables from .env file
 load_dotenv()
@@ -211,12 +211,13 @@ def store_credit_report(credit_report):
         st.error(f"Error occurred while storing credit report: {str(e)}")
 
 async def html_to_pdf(html_content):
-    browser = await launch()
-    page = await browser.newPage()
-    await page.setContent(html_content)
-    pdf_bytes = await page.pdf({"format": "A4"})
-    await browser.close()
-    return pdf_bytes
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
+        await page.set_content(html_content)
+        pdf_bytes = await page.pdf({"format": "A4"})
+        await browser.close()
+        return pdf_bytes
 
 def main():
     st.title("Credit Assessment App")
