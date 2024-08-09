@@ -14,6 +14,8 @@ logging.basicConfig(level=logging.ERROR)
 from xhtml2pdf import pisa
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+st.set_page_config(page_title="Credit Assessor")
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -293,8 +295,6 @@ def extract_application_id(credit_report):
         return "application_id_not_found"
 
 def main():
-    st.set_page_config(page_title="Credit Assessor")
-    
     st.title("OCCC Credit Assessment Report")  # Rename the title
     
     with st.expander("Upload Loan Application Form"):
