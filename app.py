@@ -294,6 +294,7 @@ def extract_application_id(credit_report):
 
 def main():
     st.set_page_config(page_title="Credit Assessor")
+    
     st.title("OCCC Credit Assessment Report")  # Rename the title
     
     with st.expander("Upload Loan Application Form"):
