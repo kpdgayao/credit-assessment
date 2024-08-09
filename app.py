@@ -285,11 +285,36 @@ def store_credit_report(credit_report):
 
 def html_to_pdf(report):
     try:
-        html = HTML(string=report)
-        css = CSS(string='''
-            @page { size: A4; margin: 1cm }
-            body { font-family: Arial, sans-serif; }
-        ''')
+        # Add inline CSS for PDF styling
+        styled_report = f"""
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.5;
+                color: black;
+                background-color: white;
+            }}
+            h1, h2, h3, h4, h5, h6 {{
+                margin-top: 20px;
+                margin-bottom: 10px;
+                color: black;
+            }}
+            p {{
+                margin-bottom: 10px;
+            }}
+            ul, ol {{
+                margin-left: 20px;
+                margin-bottom: 10px;
+            }}
+            li {{
+                margin-bottom: 5px;
+            }}
+        </style>
+        {report}
+        """
+        html = HTML(string=styled_report)
+        css = CSS(string='@page { size: A4; margin: 1cm }')
         return html.write_pdf(stylesheets=[css])
     except Exception as e:
         st.error(f"Error generating PDF: {e}")
@@ -332,7 +357,42 @@ def main():
                     
                     # Display Report in Expandable Section
                     with st.expander("View Credit Assessment Report"):
-                        st.components.v1.html(credit_report, height=600, scrolling=True)
+                        # Add CSS for light and dark mode compatibility
+                        st.markdown("""
+                            <style>
+                            .credit-report {
+                                font-family: Arial, sans-serif;
+                                font-size: 14px;
+                                line-height: 1.5;
+                                color: var(--text-color);
+                                background-color: var(--background-color);
+                                padding: 20px;
+                                border-radius: 5px;
+                            }
+                            .credit-report h1, .credit-report h2, .credit-report h3, 
+                            .credit-report h4, .credit-report h5, .credit-report h6 {
+                                color: var(--text-color);
+                                margin-top: 20px;
+                                margin-bottom: 10px;
+                            }
+                            .credit-report p {
+                                margin-bottom: 10px;
+                            }
+                            .credit-report ul, .credit-report ol {
+                                margin-left: 20px;
+                                margin-bottom: 10px;
+                            }
+                            .credit-report li {
+                                margin-bottom: 5px;
+                            }
+                            </style>
+                        """, unsafe_allow_html=True)
+                        
+                        # Wrap the credit report in a div with the credit-report class
+                        styled_report = f'<div class="credit-report">{credit_report}</div>'
+                        
+                        # Display the styled report
+                        st.components.v1.html(styled_report, height=600, scrolling=True)
 
                 progress_bar.progress(100)
 
