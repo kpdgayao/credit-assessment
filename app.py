@@ -13,6 +13,7 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 from xhtml2pdf import pisa
 from tenacity import retry, stop_after_attempt, wait_exponential
+import re
 
 st.set_page_config(page_title="Credit Assessor")
 
@@ -112,6 +113,12 @@ def store_processed_data(processed_data):
             st.error("Failed to store processed data.")
     except Exception as e:
         st.error(f"Error occurred while storing processed data: {str(e)}")
+
+def extract_application_id(credit_report):
+    match = re.search(r'<p><strong>Application ID:</strong>\s*(.*?)\s*</p>', credit_report)
+    if match:
+        return match.group(1).strip()
+    return "unknown"
 
 @st.cache_data(show_spinner=False)  # Cache generated credit report
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -270,17 +277,23 @@ def store_credit_report(credit_report):
         }
         response = supabase_client.table("credit_reports").insert(credit_report_record).execute()
         if response:
-            st.success("Credit report processed successfully.")
+            st.success("Credit report saved successfully.")
         else:
             st.error("Failed to process credit report.")
     except Exception as e:
         st.error(f"Error occurred while processing credit report: {str(e)}")
 
 def html_to_pdf(report):
-    pdf = io.BytesIO()
-    pisa.CreatePDF(report, dest=pdf)
-    pdf.seek(0)
-    return pdf.getvalue()
+    try:
+        html = HTML(string=report)
+        css = CSS(string='''
+            @page { size: A4; margin: 1cm }
+            body { font-family: Arial, sans-serif; }
+        ''')
+        return html.write_pdf(stylesheets=[css])
+    except Exception as e:
+        st.error(f"Error generating PDF: {e}")
+        return None
 
 def extract_application_id(credit_report):
     # Extract the application ID from the credit report using regular expressions or string manipulation
@@ -295,7 +308,7 @@ def extract_application_id(credit_report):
         return "application_id_not_found"
 
 def main():
-    st.title("OCCC Credit Assessment Report")  # Rename the title
+    st.title("OCCC Credit Assessment Report")
     
     with st.expander("Upload Loan Application Form"):
         uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
@@ -319,60 +332,31 @@ def main():
                     
                     # Display Report in Expandable Section
                     with st.expander("View Credit Assessment Report"):
-                        # Apply CSS styles to the credit-report class
-                        st.markdown(
-                            """
-                            <style>
-                            .credit-report {
-                                font-family: Arial, sans-serif;
-                                font-size: 14px;
-                                line-height: 1.5;
-                            }
-                            .credit-report h1, .credit-report h2, .credit-report h3, .credit-report h4, .credit-report h5, .credit-report h6 {
-                                margin-top: 20px;
-                                margin-bottom: 10px;
-                            }
-                            .credit-report p {
-                                margin-bottom: 10px;
-                            }
-                            .credit-report ul, .credit-report ol {
-                                margin-left: 20px;
-                                margin-bottom: 10px;
-                            }
-                            .credit-report li {
-                                margin-bottom: 5px;
-                            }
-                            </style>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        st.markdown(credit_report, unsafe_allow_html=True)
+                        st.components.v1.html(credit_report, height=600, scrolling=True)
 
                 progress_bar.progress(100)
 
                 if credit_report:
                     with st.spinner("Storing report..."):
                         store_credit_report(credit_report)
-                        st.success("Credit report processed successfully.")
                         
                     with st.spinner("Generating PDF..."):
                         try:
                             pdf_bytes = html_to_pdf(credit_report)
                             
-                            # Extract the application ID from the generated report
-                            application_id = extract_application_id(credit_report)
-                            
-                            if application_id == "application_id_not_found":
-                                file_name = "credit_assessment_report.pdf"
-                            else:
+                            if pdf_bytes:
+                                application_id = extract_application_id(credit_report)
                                 file_name = f"{application_id}_credit_assessment_report.pdf"
-                            
-                            st.download_button(
-                                label="Download PDF",
-                                data=pdf_bytes,
-                                file_name=file_name,
-                                mime="application/pdf",
-                            )
+                                
+                                st.download_button(
+                                    label="Download PDF",
+                                    data=pdf_bytes,
+                                    file_name=file_name,
+                                    mime="application/pdf",
+                                )
+                                st.success("Credit report processed successfully. You can now download the PDF.")
+                            else:
+                                st.error("Failed to generate PDF.")
                         except Exception as e:
                             st.error(f"Error generating PDF: {e}")
                 else:
@@ -382,7 +366,6 @@ def main():
         else:
             st.error("Failed to extract data.")
     else:
-        # Display a message when no file is uploaded
         st.info("Please upload a loan application form in PDF format.")
 
 if __name__ == "__main__":
