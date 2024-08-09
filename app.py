@@ -10,18 +10,28 @@ import json
 import anthropic
 from weasyprint import HTML, CSS  # Add this import statement at the top of your script
 import logging
+logging.basicConfig(level=logging.ERROR)
+from xhtml2pdf import pisa
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 # Load environment variables from .env file
 load_dotenv()
 
+@st.cache_resource
+def get_anthropic_client():
+    return anthropic.Client(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+@st.cache_resource
+def get_supabase_client():
+    return create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_API_KEY"))
+
 # Set up Anthropic API client
 anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-anthropic_api_url = "https://api.anthropic.com/v1/messages"
 
 # Set up Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_api_key = os.getenv("SUPABASE_API_KEY")
-supabase_client = create_client(supabase_url, supabase_api_key)
+supabase_client = get_supabase_client()
 
 @st.cache_data(show_spinner=False)  # Cache extraction results
 def extract_data_from_pdf(file):
@@ -53,7 +63,7 @@ def process_extracted_data(extracted_data):
     try:
         # Use Anthropic API to process the extracted data
         anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-        client = anthropic.Client(api_key=anthropic_api_key)
+        client = get_anthropic_client()
 
         messages = [
             {"role": "user", "content": f"Please process the following extracted data from a PDF loan application form:\n\n{extracted_data}\n\nProvide the processed data in a structured JSON format."}
@@ -102,11 +112,11 @@ def store_processed_data(processed_data):
         st.error(f"Error occurred while storing processed data: {str(e)}")
 
 @st.cache_data(show_spinner=False)  # Cache generated credit report
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def generate_credit_report(processed_data):
     try:
         # Use Anthropic API to generate credit assessment report
-        anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-        client = anthropic.Client(api_key=anthropic_api_key)
+        client = get_anthropic_client()
 
         system_prompt = """
         You are an AI-powered credit assessment expert for individual borrowers in the Philippines. Your task is to thoroughly analyze the provided loan application details and generate a comprehensive credit report with a rigorous initial assessment of the applicant's creditworthiness based on the 5 Cs of credit: Capacity, Capital, Character, Collateral, and Conditions.
@@ -221,15 +231,18 @@ def generate_credit_report(processed_data):
 
         try:
             response = client.messages.create(
-                model="claude-3-opus-20240229",
-                max_tokens=2000,
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=3000,
                 system=system_prompt,
                 messages=messages
             )
         except anthropic.APIError as e:
-            st.error(f"API Error occurred while generating the credit report. Error details: {str(e)}")
-            # Log the error details for further investigation
             logging.error(f"Anthropic API Error: {str(e)}")
+            st.error(f"API Error occurred while generating the credit report. Error details: {str(e)}")
+            return None
+        except Exception as e:
+            logging.error(f"Unexpected error in generate_credit_report: {str(e)}")
+            st.error(f"An unexpected error occurred while generating the credit report. Error details: {str(e)}")
             return None
 
         report = response.content[0].text
@@ -262,12 +275,10 @@ def store_credit_report(credit_report):
         st.error(f"Error occurred while processing credit report: {str(e)}")
 
 def html_to_pdf(report):
-    try:
-        html = HTML(string=report)
-        return html.write_pdf()
-    except Exception as e:
-        st.error(f"Error generating PDF: {e}")
-        return None
+    pdf = io.BytesIO()
+    pisa.CreatePDF(report, dest=pdf)
+    pdf.seek(0)
+    return pdf.getvalue()
 
 def extract_application_id(credit_report):
     # Extract the application ID from the credit report using regular expressions or string manipulation
@@ -289,16 +300,21 @@ def main():
         uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
         
     if uploaded_file:
+        progress_bar = st.progress(0)
+        
         with st.spinner("Extracting data..."):
             extracted_data = extract_data_from_pdf(uploaded_file)
+            progress_bar.progress(25)
             
         if extracted_data:
             with st.spinner("Analyzing data..."):
                 processed_data = process_extracted_data(extracted_data)
+                progress_bar.progress(50)
                 
             if processed_data:
                 with st.spinner("Generating report..."):
                     credit_report = generate_credit_report(processed_data)
+                    progress_bar.progress(75)
                     
                     # Display Report in Expandable Section
                     with st.expander("View Credit Assessment Report"):
@@ -330,7 +346,9 @@ def main():
                             unsafe_allow_html=True
                         )
                         st.markdown(credit_report, unsafe_allow_html=True)
-                        
+
+                progress_bar.progress(100)
+
                 if credit_report:
                     with st.spinner("Storing report..."):
                         store_credit_report(credit_report)
